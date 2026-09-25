@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+build/
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# logs / coverage
+logs/
+*.log
+coverage/
+.nyc_output/
+
+# Nest
+.nest/
+
+# OpenSpec local
+openspec/worksets/
+
+# task brief (local)
+task/

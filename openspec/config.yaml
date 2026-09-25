@@ -1,0 +1,16 @@
+schema: spec-driven
+
+context: |
+  Tech stack: NestJS 11 monorepo (pnpm), TypeScript, PostgreSQL 16, Liquibase, TypeORM (synchronize: false), @nestjs/swagger, Docker Compose.
+  Domain: student records (variant 2) — enroll, expel, edit, transfer course; course enrollment report.
+  Conventions: feature modules, thin controllers, env via ConfigModule, no AI-slop comments, short README.
+  Mapping: RestTemplate → HttpService (@nestjs/axios); gateway → apps/gateway Nest proxy.
+  Branches: lab-1 → lab-2 → lab-3 cumulative.
+
+rules:
+  proposal:
+    - Keep proposals under 400 words
+    - Include Non-goals
+  tasks:
+    - Checkbox format required for apply tracking
+    - Group by dependency order
