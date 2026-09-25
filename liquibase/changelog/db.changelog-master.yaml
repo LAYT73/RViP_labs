@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-students
+      author: shipilov
+      changes:
+        - createTable:
+            tableName: students
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  defaultValueComputed: gen_random_uuid()
+              - column:
+                  name: full_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: course
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+                  defaultValueComputed: NOW()
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+                  defaultValueComputed: NOW()
+        - sql:
+            sql: |
+              ALTER TABLE students
+                ADD CONSTRAINT students_course_check CHECK (course BETWEEN 1 AND 6);
+              ALTER TABLE students
+                ADD CONSTRAINT students_status_check CHECK (status IN ('ENROLLED', 'EXPELLED'));

@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rvip-postgres
+    environment:
+      POSTGRES_DB: students
+      POSTGRES_USER: students
+      POSTGRES_PASSWORD: students
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U students -d students"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rvip-net
+
+  liquibase:
+    image: liquibase/liquibase:4.31
+    container_name: rvip-liquibase
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./liquibase/changelog:/liquibase/changelog
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        lpm add postgresql --global
+        liquibase \
+          --url=jdbc:postgresql://postgres:5432/students \
+          --username=students \
+          --password=students \
+          --changelog-file=db.changelog-master.yaml \
+          --search-path=/liquibase/changelog \
+          update
+    networks:
+      - rvip-net
+
+  student-service:
+    build:
+      context: .
+      dockerfile: apps/student-service/Dockerfile
+    container_name: rvip-student-service
+    depends_on:
+      liquibase:
+        condition: service_completed_successfully
+    environment:
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: students
+      DB_PASSWORD: students
+      DB_NAME: students
+    ports:
+      - "3001:3001"
+    networks:
+      - rvip-net
+
+volumes:
+  postgres_data:
+
+networks:
+  rvip-net:
+    name: rvip-net
