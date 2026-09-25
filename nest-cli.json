@@ -18,6 +18,24 @@
       "compilerOptions": {
         "tsConfigPath": "apps/student-service/tsconfig.app.json"
       }
+    },
+    "report-service": {
+      "type": "application",
+      "root": "apps/report-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/report-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/report-service/tsconfig.app.json"
+      }
+    },
+    "gateway": {
+      "type": "application",
+      "root": "apps/gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/gateway/tsconfig.app.json"
+      }
     }
   }
 }

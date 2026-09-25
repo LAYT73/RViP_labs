@@ -1,0 +1,45 @@
+{
+  "info": {
+    "name": "RViP Lab 2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Enroll student (via gateway)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Сидоров Сидор\",\n  \"course\": 3\n}"
+        },
+        "url": "{{gateway}}/api/students"
+      }
+    },
+    {
+      "name": "List students (via gateway)",
+      "request": {
+        "method": "GET",
+        "url": "{{gateway}}/api/students"
+      }
+    },
+    {
+      "name": "Report by course (via gateway)",
+      "request": {
+        "method": "GET",
+        "url": "{{gateway}}/api/reports/by-course"
+      }
+    },
+    {
+      "name": "Report by course (direct report-service)",
+      "request": {
+        "method": "GET",
+        "url": "{{report}}/api/reports/by-course"
+      }
+    }
+  ],
+  "variable": [
+    { "key": "gateway", "value": "http://localhost:3080" },
+    { "key": "report", "value": "http://localhost:3002" }
+  ]
+}

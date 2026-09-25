@@ -60,6 +60,43 @@ services:
     networks:
       - rvip-net
 
+  report-service:
+    build:
+      context: .
+      dockerfile: apps/report-service/Dockerfile
+    container_name: rvip-report-service
+    depends_on:
+      liquibase:
+        condition: service_completed_successfully
+    environment:
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: students
+      DB_PASSWORD: students
+      DB_NAME: students
+    ports:
+      - "3002:3002"
+    networks:
+      - rvip-net
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    container_name: rvip-gateway
+    depends_on:
+      - student-service
+      - report-service
+    environment:
+      PORT: 3000
+      STUDENT_SERVICE_URL: http://student-service:3001
+      REPORT_SERVICE_URL: http://report-service:3002
+    ports:
+      - "3080:3000"
+    networks:
+      - rvip-net
+
 volumes:
   postgres_data:
 
