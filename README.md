@@ -2,7 +2,7 @@
 
 NestJS monorepo: учёт студентов (вариант 2).
 
-## Lab 1–2
+## Run
 
 ```bash
 pnpm install
@@ -13,17 +13,12 @@ docker compose up --build
 |-----|-----|
 | Gateway | http://localhost:3080 |
 | Student + Swagger | http://localhost:3001/api/docs |
-| Report | http://localhost:3002 |
+| Report | только внутри Docker-сети (`report-service:3002`) |
 | Postgres (host) | localhost:55432 |
 
-Postman: [`postman/lab-2.postman_collection.json`](postman/lab-2.postman_collection.json)
+Postman:
 
-Локально (сервисы на хосте, БД в Docker):
+- Lab 2: [`postman/lab-2.postman_collection.json`](postman/lab-2.postman_collection.json)
+- Lab 3: [`postman/lab-3.postman_collection.json`](postman/lab-3.postman_collection.json)
 
-```bash
-docker compose up -d postgres liquibase
-cp .env.example .env
-pnpm start:student:dev
-pnpm start:report:dev
-pnpm start:gateway:dev
-```
+Ветки: `lab-1` → `lab-2` → `lab-3`.

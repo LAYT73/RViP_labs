@@ -1,8 +1,5 @@
-# api-gateway Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change lab-2-report-gateway. Update Purpose after archive.
-## Requirements
 ### Requirement: Unified entrypoint
 
 The gateway SHALL expose student and report APIs on a single host/port. Report paths MUST be proxied to student-service. Report-service MUST NOT be reachable from the host network.
@@ -21,4 +18,3 @@ The gateway SHALL expose student and report APIs on a single host/port. Report p
 
 - **WHEN** client attempts to reach report-service on published host ports
 - **THEN** the connection fails because the port is not published
-

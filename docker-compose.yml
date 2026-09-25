@@ -48,6 +48,8 @@ services:
     depends_on:
       liquibase:
         condition: service_completed_successfully
+      report-service:
+        condition: service_started
     environment:
       PORT: 3001
       DB_HOST: postgres
@@ -55,6 +57,7 @@ services:
       DB_USER: students
       DB_PASSWORD: students
       DB_NAME: students
+      REPORT_SERVICE_URL: http://report-service:3002
     ports:
       - "3001:3001"
     networks:
@@ -75,8 +78,9 @@ services:
       DB_USER: students
       DB_PASSWORD: students
       DB_NAME: students
-    ports:
-      - "3002:3002"
+    # Lab 3: no host ports — only reachable inside rvip-net
+    expose:
+      - "3002"
     networks:
       - rvip-net
 
@@ -87,11 +91,9 @@ services:
     container_name: rvip-gateway
     depends_on:
       - student-service
-      - report-service
     environment:
       PORT: 3000
       STUDENT_SERVICE_URL: http://student-service:3001
-      REPORT_SERVICE_URL: http://report-service:3002
     ports:
       - "3080:3000"
     networks:

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ReportsProxyModule } from './reports/reports-proxy.module';
 import { Student } from './students/student.entity';
 import { StudentsModule } from './students/students.module';
 
@@ -21,6 +22,7 @@ import { StudentsModule } from './students/students.module';
       }),
     }),
     StudentsModule,
+    ReportsProxyModule,
   ],
 })
 export class AppModule {}

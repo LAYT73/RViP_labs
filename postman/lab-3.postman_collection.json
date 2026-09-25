@@ -1,0 +1,38 @@
+{
+  "info": {
+    "name": "RViP Lab 3",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Enroll student (via gateway)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Козлова Анна\",\n  \"course\": 1\n}"
+        },
+        "url": "{{gateway}}/api/students"
+      }
+    },
+    {
+      "name": "Report via gateway (student HttpService proxy)",
+      "request": {
+        "method": "GET",
+        "url": "{{gateway}}/api/reports/by-course"
+      }
+    },
+    {
+      "name": "Report via student-service directly",
+      "request": {
+        "method": "GET",
+        "url": "{{student}}/api/reports/by-course"
+      }
+    }
+  ],
+  "variable": [
+    { "key": "gateway", "value": "http://localhost:3080" },
+    { "key": "student", "value": "http://localhost:3001" }
+  ]
+}

@@ -9,7 +9,6 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   const studentUrl = config.get<string>('STUDENT_SERVICE_URL', 'http://localhost:3001');
-  const reportUrl = config.get<string>('REPORT_SERVICE_URL', 'http://localhost:3002');
 
   const expressApp = app.getHttpAdapter().getInstance();
 
@@ -23,7 +22,7 @@ async function bootstrap() {
 
   expressApp.use(
     createProxyMiddleware({
-      target: reportUrl,
+      target: studentUrl,
       changeOrigin: true,
       pathFilter: '/api/reports',
     }),
