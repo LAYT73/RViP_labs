@@ -22,8 +22,11 @@ docker compose up --build
 | Elasticsearch | http://localhost:9200 |
 | APM Server | http://localhost:8200 |
 
-В Kibana: **Observability → APM** — трейсы `gateway` → `student-service` → `report-service`.  
+В Kibana: **Observability → APM** (стек 7.17) — трейсы `gateway` → `student-service` → `report-service`.  
 В ответах API смотри заголовок `X-Trace-Id`.
+
+Если поднимал старый Elasticsearch 8.x — сбрось том:
+`docker compose down -v` (сотрёт и Postgres data) или удали только `es_data` / используй новый `es_data_v7`.
 
 Postman: [`postman/lab-3.postman_collection.json`](postman/lab-3.postman_collection.json)
 

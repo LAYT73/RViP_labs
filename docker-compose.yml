@@ -49,18 +49,23 @@ services:
       - rvip-net
 
   # --- ELK / observability (lab-3 доп) ---
+  # Стек 7.17: APM сам создаёт индексы, без Fleet (Fleet в 8.x ломается при security=false)
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.21
     container_name: rvip-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - xpack.security.http.ssl.enabled=false
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     ports:
       - "${ELASTICSEARCH_HOST_PORT:-9200}:9200"
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - es_data_v7:/usr/share/elasticsearch/data
     healthcheck:
       test:
         [
@@ -75,7 +80,7 @@ services:
       - rvip-net
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.4
+    image: docker.elastic.co/kibana/kibana:7.17.21
     container_name: rvip-kibana
     depends_on:
       elasticsearch:
@@ -99,11 +104,12 @@ services:
       - rvip-net
 
   apm-server:
-    image: docker.elastic.co/apm/apm-server:8.11.4
+    image: docker.elastic.co/apm/apm-server:7.17.21
     container_name: rvip-apm-server
     depends_on:
       elasticsearch:
         condition: service_healthy
+    user: root
     ports:
       - "${APM_HOST_PORT:-8200}:8200"
     command:
@@ -116,6 +122,8 @@ services:
       - -E
       - setup.kibana.host=kibana:5601
       - -E
+      - setup.template.enabled=true
+      - -E
       - apm-server.kibana.enabled=true
       - -E
       - apm-server.kibana.host=kibana:5601
@@ -123,7 +131,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -s -o /dev/null -w '%{http_code}' http://localhost:8200/ | grep -q 200",
+          "curl -s http://localhost:8200/ | grep -q 'build_date'",
         ]
       interval: 10s
       timeout: 5s
@@ -143,7 +151,7 @@ services:
       report-service:
         condition: service_healthy
       apm-server:
-        condition: service_healthy
+        condition: service_started
     environment:
       PORT: ${STUDENT_PORT:-3001}
       DB_HOST: postgres
@@ -181,7 +189,7 @@ services:
       liquibase:
         condition: service_completed_successfully
       apm-server:
-        condition: service_healthy
+        condition: service_started
     environment:
       PORT: ${REPORT_PORT:-3002}
       DB_HOST: postgres
@@ -218,7 +226,7 @@ services:
       student-service:
         condition: service_healthy
       apm-server:
-        condition: service_healthy
+        condition: service_started
     environment:
       PORT: ${GATEWAY_PORT:-3000}
       STUDENT_SERVICE_URL: http://student-service:${STUDENT_PORT:-3001}
@@ -232,7 +240,7 @@ services:
 
 volumes:
   postgres_data:
-  es_data:
+  es_data_v7:
 
 networks:
   rvip-net:
