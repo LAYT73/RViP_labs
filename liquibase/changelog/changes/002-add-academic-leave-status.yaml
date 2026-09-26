@@ -6,11 +6,11 @@ databaseChangeLog:
         Production-safe extension of students.status: drop the old CHECK
         (ENROLLED, EXPELLED) and recreate it with ACADEMIC_LEAVE. Do not
         edit 001-create-students — existing DBs already applied it.
+        Uses raw SQL because drop/addCheckConstraint require Liquibase Pro.
       changes:
-        - dropCheckConstraint:
-            tableName: students
-            constraintName: students_status_check
-        - addCheckConstraint:
-            tableName: students
-            constraintName: students_status_check
-            checkCondition: "status IN ('ENROLLED', 'EXPELLED', 'ACADEMIC_LEAVE')"
+        - sql:
+            sql: |
+              ALTER TABLE students DROP CONSTRAINT students_status_check;
+              ALTER TABLE students
+                ADD CONSTRAINT students_status_check
+                CHECK (status IN ('ENROLLED', 'EXPELLED', 'ACADEMIC_LEAVE'));
