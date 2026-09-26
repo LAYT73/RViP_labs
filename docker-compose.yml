@@ -3,15 +3,19 @@ services:
     image: postgres:16-alpine
     container_name: rvip-postgres
     environment:
-      POSTGRES_DB: students
-      POSTGRES_USER: students
-      POSTGRES_PASSWORD: students
+      POSTGRES_DB: ${DB_NAME:-students}
+      POSTGRES_USER: ${DB_USER:-students}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-students}
     ports:
-      - "55432:5432"
+      - "${POSTGRES_HOST_PORT:-55432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U students -d students"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-students} -d ${DB_NAME:-students}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,6 +28,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      DB_USER: ${DB_USER:-students}
+      DB_PASSWORD: ${DB_PASSWORD:-students}
+      DB_NAME: ${DB_NAME:-students}
     volumes:
       - ./liquibase/changelog:/liquibase/changelog
     entrypoint: ["/bin/bash", "-c"]
@@ -31,9 +39,9 @@ services:
       - |
         lpm add postgresql --global
         liquibase \
-          --url=jdbc:postgresql://postgres:5432/students \
-          --username=students \
-          --password=students \
+          --url=jdbc:postgresql://postgres:5432/$${DB_NAME} \
+          --username=$${DB_USER} \
+          --password=$${DB_PASSWORD} \
           --changelog-file=db.changelog-master.yaml \
           --search-path=/liquibase/changelog \
           update
@@ -49,14 +57,15 @@ services:
       liquibase:
         condition: service_completed_successfully
     environment:
-      PORT: 3001
+      PORT: ${STUDENT_PORT:-3001}
+      # внутри docker-сети хост БД — имя сервиса, не localhost из .env
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: students
-      DB_PASSWORD: students
-      DB_NAME: students
+      DB_USER: ${DB_USER:-students}
+      DB_PASSWORD: ${DB_PASSWORD:-students}
+      DB_NAME: ${DB_NAME:-students}
     ports:
-      - "3001:3001"
+      - "${STUDENT_HOST_PORT:-3001}:${STUDENT_PORT:-3001}"
     networks:
       - rvip-net
 
@@ -69,14 +78,14 @@ services:
       liquibase:
         condition: service_completed_successfully
     environment:
-      PORT: 3002
+      PORT: ${REPORT_PORT:-3002}
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: students
-      DB_PASSWORD: students
-      DB_NAME: students
+      DB_USER: ${DB_USER:-students}
+      DB_PASSWORD: ${DB_PASSWORD:-students}
+      DB_NAME: ${DB_NAME:-students}
     ports:
-      - "3002:3002"
+      - "${REPORT_HOST_PORT:-3002}:${REPORT_PORT:-3002}"
     networks:
       - rvip-net
 
@@ -89,11 +98,11 @@ services:
       - student-service
       - report-service
     environment:
-      PORT: 3000
-      STUDENT_SERVICE_URL: http://student-service:3001
-      REPORT_SERVICE_URL: http://report-service:3002
+      PORT: ${GATEWAY_PORT:-3000}
+      STUDENT_SERVICE_URL: http://student-service:${STUDENT_PORT:-3001}
+      REPORT_SERVICE_URL: http://report-service:${REPORT_PORT:-3002}
     ports:
-      - "3080:3000"
+      - "${GATEWAY_HOST_PORT:-3080}:${GATEWAY_PORT:-3000}"
     networks:
       - rvip-net
 
