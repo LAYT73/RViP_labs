@@ -58,7 +58,6 @@ services:
         condition: service_completed_successfully
     environment:
       PORT: ${STUDENT_PORT:-3001}
-      # внутри docker-сети хост БД — имя сервиса, не localhost из .env
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-students}
@@ -81,23 +80,57 @@ services:
     networks:
       - rvip-net
 
-  report-service:
+  report-service-1:
     build:
       context: .
       dockerfile: apps/report-service/Dockerfile
-    container_name: rvip-report-service
+    container_name: rvip-report-service-1
     depends_on:
       liquibase:
         condition: service_completed_successfully
     environment:
       PORT: ${REPORT_PORT:-3002}
+      INSTANCE_ID: report-1
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-students}
       DB_PASSWORD: ${DB_PASSWORD:-students}
       DB_NAME: ${DB_NAME:-students}
     ports:
-      - "${REPORT_HOST_PORT:-3002}:${REPORT_PORT:-3002}"
+      - "${REPORT_HOST_PORT_1:-3002}:${REPORT_PORT:-3002}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||3002)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - rvip-net
+
+  report-service-2:
+    build:
+      context: .
+      dockerfile: apps/report-service/Dockerfile
+    container_name: rvip-report-service-2
+    depends_on:
+      liquibase:
+        condition: service_completed_successfully
+    environment:
+      PORT: ${REPORT_PORT:-3002}
+      INSTANCE_ID: report-2
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-students}
+      DB_PASSWORD: ${DB_PASSWORD:-students}
+      DB_NAME: ${DB_NAME:-students}
+    ports:
+      - "${REPORT_HOST_PORT_2:-3003}:${REPORT_PORT:-3002}"
     healthcheck:
       test:
         [
@@ -121,12 +154,14 @@ services:
     depends_on:
       student-service:
         condition: service_healthy
-      report-service:
+      report-service-1:
+        condition: service_healthy
+      report-service-2:
         condition: service_healthy
     environment:
       PORT: ${GATEWAY_PORT:-3000}
       STUDENT_SERVICE_URL: http://student-service:${STUDENT_PORT:-3001}
-      REPORT_SERVICE_URL: http://report-service:${REPORT_PORT:-3002}
+      REPORT_SERVICE_URLS: http://report-service-1:${REPORT_PORT:-3002},http://report-service-2:${REPORT_PORT:-3002}
     ports:
       - "${GATEWAY_HOST_PORT:-3080}:${GATEWAY_PORT:-3000}"
     networks:

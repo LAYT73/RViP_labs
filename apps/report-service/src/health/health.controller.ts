@@ -7,10 +7,13 @@ export class HealthController {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   @Get()
-  async check(): Promise<{ status: string }> {
+  async check(): Promise<{ status: string; instance: string }> {
     try {
       await this.dataSource.query('SELECT 1');
-      return { status: 'ok' };
+      return {
+        status: 'ok',
+        instance: process.env.INSTANCE_ID ?? 'report-service',
+      };
     } catch {
       throw new ServiceUnavailableException({ status: 'error', db: 'down' });
     }

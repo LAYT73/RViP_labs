@@ -4,19 +4,32 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { AppModule } from './app.module';
-import { createUpstreamHealthGuard } from './upstream-health.guard';
+import {
+  createUpstreamHealthGuard,
+  pickRandomHealthyUrl,
+} from './upstream-health.guard';
+
+function parseReportUrls(config: ConfigService): string[] {
+  const list = config.get<string>('REPORT_SERVICE_URLS');
+  if (list?.trim()) {
+    return list
+      .split(',')
+      .map((u) => u.trim())
+      .filter(Boolean);
+  }
+  const single = config.get<string>('REPORT_SERVICE_URL', 'http://localhost:3002');
+  return [single];
+}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
 
   const studentUrl = config.get<string>('STUDENT_SERVICE_URL', 'http://localhost:3001');
-  const reportUrl = config.get<string>('REPORT_SERVICE_URL', 'http://localhost:3002');
+  const reportUrls = parseReportUrls(config);
 
   const expressApp = app.getHttpAdapter().getInstance();
-
   const studentHealth = createUpstreamHealthGuard(studentUrl, 'student-service');
-  const reportHealth = createUpstreamHealthGuard(reportUrl, 'report-service');
 
   expressApp.use(async (req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith('/api/students')) {
@@ -24,7 +37,18 @@ async function bootstrap() {
       return;
     }
     if (req.path.startsWith('/api/reports')) {
-      await reportHealth(req, res, next);
+      const chosen = await pickRandomHealthyUrl(reportUrls);
+      if (!chosen) {
+        res.status(503).json({
+          statusCode: 503,
+          message: 'report-service is unavailable',
+          error: 'Service Unavailable',
+        });
+        return;
+      }
+      (req as Request & { reportUpstream?: string }).reportUpstream = chosen;
+      res.setHeader('X-Report-Upstream', chosen);
+      next();
       return;
     }
     next();
@@ -40,9 +64,11 @@ async function bootstrap() {
 
   expressApp.use(
     createProxyMiddleware({
-      target: reportUrl,
+      target: reportUrls[0],
       changeOrigin: true,
       pathFilter: '/api/reports',
+      router: (req) =>
+        (req as Request & { reportUpstream?: string }).reportUpstream ?? reportUrls[0],
     }),
   );
 
