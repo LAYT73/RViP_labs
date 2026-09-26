@@ -52,4 +52,16 @@ export class StudentsController {
   expel(@Param('id', ParseUUIDPipe) id: string): Promise<Student> {
     return this.studentsService.expel(id);
   }
+
+  @Post(':id/academic-leave')
+  @ApiOperation({ summary: 'Send enrolled student on academic leave' })
+  sendOnAcademicLeave(@Param('id', ParseUUIDPipe) id: string): Promise<Student> {
+    return this.studentsService.sendOnAcademicLeave(id);
+  }
+
+  @Post(':id/return-from-academic-leave')
+  @ApiOperation({ summary: 'Return student from academic leave to enrolled' })
+  returnFromAcademicLeave(@Param('id', ParseUUIDPipe) id: string): Promise<Student> {
+    return this.studentsService.returnFromAcademicLeave(id);
+  }
 }

@@ -46,3 +46,8 @@ databaseChangeLog:
                 ADD CONSTRAINT students_course_check CHECK (course BETWEEN 1 AND 6);
               ALTER TABLE students
                 ADD CONSTRAINT students_status_check CHECK (status IN ('ENROLLED', 'EXPELLED'));
+
+  # Later migrations — never edit applied changesets above
+  - include:
+      file: changes/002-add-academic-leave-status.yaml
+      relativeToChangelogFile: true

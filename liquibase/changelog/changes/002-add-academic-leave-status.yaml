@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-add-academic-leave-status
+      author: shipilov
+      comment: >
+        Production-safe extension of students.status: drop the old CHECK
+        (ENROLLED, EXPELLED) and recreate it with ACADEMIC_LEAVE. Do not
+        edit 001-create-students — existing DBs already applied it.
+      changes:
+        - dropCheckConstraint:
+            tableName: students
+            constraintName: students_status_check
+        - addCheckConstraint:
+            tableName: students
+            constraintName: students_status_check
+            checkCondition: "status IN ('ENROLLED', 'EXPELLED', 'ACADEMIC_LEAVE')"
