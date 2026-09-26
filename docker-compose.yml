@@ -57,7 +57,7 @@ services:
       liquibase:
         condition: service_completed_successfully
       report-service:
-        condition: service_started
+        condition: service_healthy
     environment:
       PORT: ${STUDENT_PORT:-3001}
       DB_HOST: postgres
@@ -68,6 +68,18 @@ services:
       REPORT_SERVICE_URL: http://report-service:${REPORT_PORT:-3002}
     ports:
       - "${STUDENT_HOST_PORT:-3001}:${STUDENT_PORT:-3001}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
     networks:
       - rvip-net
 
@@ -89,6 +101,18 @@ services:
     # Lab 3: no host ports — only reachable inside rvip-net
     expose:
       - "${REPORT_PORT:-3002}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||3002)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
     networks:
       - rvip-net
 
@@ -98,7 +122,8 @@ services:
       dockerfile: apps/gateway/Dockerfile
     container_name: rvip-gateway
     depends_on:
-      - student-service
+      student-service:
+        condition: service_healthy
     environment:
       PORT: ${GATEWAY_PORT:-3000}
       STUDENT_SERVICE_URL: http://student-service:${STUDENT_PORT:-3001}
