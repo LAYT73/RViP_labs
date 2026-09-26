@@ -48,6 +48,90 @@ services:
     networks:
       - rvip-net
 
+  # --- ELK / observability (lab-3 доп) ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
+    container_name: rvip-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "${ELASTICSEARCH_HOST_PORT:-9200}:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    networks:
+      - rvip-net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.4
+    container_name: rvip-kibana
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_SECURITY_ENABLED=false
+    ports:
+      - "${KIBANA_HOST_PORT:-5601}:5601"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/api/status | grep -q 200",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    networks:
+      - rvip-net
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:8.11.4
+    container_name: rvip-apm-server
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "${APM_HOST_PORT:-8200}:8200"
+    command:
+      - apm-server
+      - -e
+      - -E
+      - apm-server.host=0.0.0.0:8200
+      - -E
+      - output.elasticsearch.hosts=["elasticsearch:9200"]
+      - -E
+      - setup.kibana.host=kibana:5601
+      - -E
+      - apm-server.kibana.enabled=true
+      - -E
+      - apm-server.kibana.host=kibana:5601
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -o /dev/null -w '%{http_code}' http://localhost:8200/ | grep -q 200",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - rvip-net
+
   student-service:
     build:
       context: .
@@ -58,6 +142,8 @@ services:
         condition: service_completed_successfully
       report-service:
         condition: service_healthy
+      apm-server:
+        condition: service_healthy
     environment:
       PORT: ${STUDENT_PORT:-3001}
       DB_HOST: postgres
@@ -66,6 +152,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-students}
       DB_NAME: ${DB_NAME:-students}
       REPORT_SERVICE_URL: http://report-service:${REPORT_PORT:-3002}
+      ELASTIC_APM_SERVICE_NAME: student-service
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+      ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}
     ports:
       - "${STUDENT_HOST_PORT:-3001}:${STUDENT_PORT:-3001}"
     healthcheck:
@@ -91,6 +180,8 @@ services:
     depends_on:
       liquibase:
         condition: service_completed_successfully
+      apm-server:
+        condition: service_healthy
     environment:
       PORT: ${REPORT_PORT:-3002}
       DB_HOST: postgres
@@ -98,7 +189,9 @@ services:
       DB_USER: ${DB_USER:-students}
       DB_PASSWORD: ${DB_PASSWORD:-students}
       DB_NAME: ${DB_NAME:-students}
-    # Lab 3: no host ports — only reachable inside rvip-net
+      ELASTIC_APM_SERVICE_NAME: report-service
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+      ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}
     expose:
       - "${REPORT_PORT:-3002}"
     healthcheck:
@@ -124,9 +217,14 @@ services:
     depends_on:
       student-service:
         condition: service_healthy
+      apm-server:
+        condition: service_healthy
     environment:
       PORT: ${GATEWAY_PORT:-3000}
       STUDENT_SERVICE_URL: http://student-service:${STUDENT_PORT:-3001}
+      ELASTIC_APM_SERVICE_NAME: gateway
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+      ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}
     ports:
       - "${GATEWAY_HOST_PORT:-3080}:${GATEWAY_PORT:-3000}"
     networks:
@@ -134,6 +232,7 @@ services:
 
 volumes:
   postgres_data:
+  es_data:
 
 networks:
   rvip-net:
