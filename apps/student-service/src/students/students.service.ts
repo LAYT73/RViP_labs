@@ -52,8 +52,8 @@ export class StudentsService {
 
   async transfer(id: string, dto: TransferStudentDto): Promise<Student> {
     const student = await this.findOne(id);
-    if (student.status === StudentStatus.EXPELLED) {
-      throw new ConflictException('Cannot transfer an expelled student');
+    if (student.status !== StudentStatus.ENROLLED) {
+      throw new ConflictException('Only enrolled students can be transferred');
     }
     student.course = dto.course;
     return this.students.save(student);
@@ -65,6 +65,24 @@ export class StudentsService {
       throw new ConflictException('Student is already expelled');
     }
     student.status = StudentStatus.EXPELLED;
+    return this.students.save(student);
+  }
+
+  async sendOnAcademicLeave(id: string): Promise<Student> {
+    const student = await this.findOne(id);
+    if (student.status !== StudentStatus.ENROLLED) {
+      throw new ConflictException('Only enrolled students can go on academic leave');
+    }
+    student.status = StudentStatus.ACADEMIC_LEAVE;
+    return this.students.save(student);
+  }
+
+  async returnFromAcademicLeave(id: string): Promise<Student> {
+    const student = await this.findOne(id);
+    if (student.status !== StudentStatus.ACADEMIC_LEAVE) {
+      throw new ConflictException('Student is not on academic leave');
+    }
+    student.status = StudentStatus.ENROLLED;
     return this.students.save(student);
   }
 }

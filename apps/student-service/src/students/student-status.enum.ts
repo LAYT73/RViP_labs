@@ -1,4 +1,5 @@
 export enum StudentStatus {
   ENROLLED = 'ENROLLED',
   EXPELLED = 'EXPELLED',
+  ACADEMIC_LEAVE = 'ACADEMIC_LEAVE',
 }
