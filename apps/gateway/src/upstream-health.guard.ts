@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import axios from 'axios';
 
-const cacheTtlMs = 2000;
+// Дольше кэш — меньше /health в том же APM-трейсе при демо стека вызовов
+const cacheTtlMs = 30_000;
 const healthyUntil = new Map<string, number>();
 
 export function createUpstreamHealthGuard(serviceBaseUrl: string, serviceName: string) {

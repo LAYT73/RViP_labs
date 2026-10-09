@@ -11,6 +11,7 @@ if (active) {
     environment: process.env.NODE_ENV ?? 'development',
     captureBody: 'errors',
     logLevel: (process.env.ELASTIC_APM_LOG_LEVEL as 'info') ?? 'error',
+    transactionIgnoreUrls: ['/health'],
   });
 }
 

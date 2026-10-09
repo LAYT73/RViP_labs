@@ -20,6 +20,9 @@ async function bootstrap() {
 
   expressApp.use((req: Request, res: Response, next: NextFunction) => {
     const started = Date.now();
+    const path = req.originalUrl?.split('?')[0] ?? req.path;
+    // http-proxy-middleware обходит Express router → иначе в APM будет "GET unknown route"
+    apm.setTransactionName(`${req.method} ${path}`);
     const traceId = apm.currentTraceIds['trace.id'] ?? '-';
     res.setHeader('X-Trace-Id', traceId);
     res.on('finish', () => {
