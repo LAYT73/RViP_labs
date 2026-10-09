@@ -1,65 +1,67 @@
-# RViP labs
+# Lab 4
 
-NestJS monorepo: учёт студентов (вариант 2).
+Учёт студентов. На этой ветке CSV отчёта report кладёт в файловое хранилище синхронным `HttpService`. Очереди нет.
 
-## Run (lab-4)
+Схема: [docs/architecture.md](docs/architecture.md).
+
+## Поднять
 
 ```bash
 pnpm install
 docker compose up --build
 ```
 
-На macOS при первом старте Elasticsearch может потребоваться:
-`sudo sysctl -w vm.max_map_count=262144`
+Если Elasticsearch не стартует на Mac: `sudo sysctl -w vm.max_map_count=262144`.
 
-| Что | URL |
-|-----|-----|
-| Gateway | http://localhost:3080 |
-| Student + Swagger | http://localhost:3001/api/docs |
-| Report | только внутри Docker-сети |
-| File-storage | http://localhost:3003 |
-| MinIO API / Console | http://localhost:9000 / http://localhost:9001 (`pgsty/silo` image — `minio/minio` removed from Docker Hub) |
-| Postgres (host) | localhost:55432 |
-| Kibana (логи/трейсы) | http://localhost:5601 |
-| Elasticsearch | http://localhost:9200 |
-| APM Server | http://localhost:8200 |
+| Куда | Зачем |
+|------|--------|
+| http://localhost:3080 | Единственный вход для клиента |
+| http://localhost:3001/api/docs | Swagger |
+| http://localhost:9001 | Консоль хранилища, `minioadmin` / `minioadmin` |
+| http://localhost:5601 | Kibana, трейсы |
 
-Схема сервисов и sequence export: [`docs/architecture.md`](docs/architecture.md).
+Report с хоста не открывается. RabbitMQ на этой ветке не запускается.
 
-### Lab-4: CSV → HttpService → MinIO
-
-Цепочка: gateway → student-service → report-service → HttpService POST → file-storage-service → Silo.
-
-`GET /api/reports/by-course` — синхронный JSON (как раньше).  
-`GET /api/reports/by-course/export` — считает отчёт, синхронно сохраняет CSV в file-storage/MinIO и отвечает метаданными файла + `rows`:
+Проверка:
 
 ```bash
-curl -s http://localhost:3080/api/reports/by-course/export | jq
-# { "id": "...", "objectKey": "reports/....csv", "bucket": "reports", "size": ..., "contentType": "text/csv", "createdAt": "...", "rows": [...] }
+curl -s http://localhost:3080/api/reports/by-course/export
 ```
 
-REST `POST /api/files` на file-storage остаётся для ручной отладки.  
-MinIO console: `minioadmin` / `minioadmin` на http://localhost:9001.
+В ответе сразу `id`, `objectKey`, `bucket` и `rows`. Это не `queued`. JSON без файла: `GET /api/reports/by-course`.
 
-Асинхронная очередь (RabbitMQ) — ветка `lab-5`.
+Postman: [postman/lab-4.postman_collection.json](postman/lab-4.postman_collection.json).
 
-### Observability (lab-3)
+## Как делать следующую лабу
 
-В Kibana: **Observability → APM → Traces** (стек 7.17) — waterfall `gateway` → `student-service` → `report-service` → `file-storage-service`.  
-В ответах API смотри заголовок `X-Trace-Id`.
+Следующая по методичке — lab 5: те же данные CSV уходят в storage через очередь, а не через `HttpService`. Чтение файла «как CompletableFuture» и JWT — не эта лаба.
 
-Симуляция стека вызовов (включая export):
+Не пиши агенту «сделай 5 и заодно очередь с футурами». Порядок такой.
+
+1. Ветка от этой:
 
 ```bash
-chmod +x scripts/simulate-trace.sh
-./scripts/simulate-trace.sh
+git checkout lab-4
+git checkout -b lab-5
 ```
 
-Если поднимал старый Elasticsearch 8.x — сбрось том:
-`docker compose down -v` (сотрёт и Postgres data) или удали только `es_data` / используй новый `es_data_v7`.
+2. В чате Cursor: «роль Architect, код не пиши». Попроси прочитать lab 5 в `task/task.md`, [docs/architecture.md](docs/architecture.md) и `openspec/specs/file-storage`. Запусти `/opsx-explore`. Нужно явно решить: export больше не ждёт `POST /api/files`, клиент получает факт постановки в очередь, storage забирает сообщение сам.
 
-Postman: [`postman/lab-3.postman_collection.json`](postman/lab-3.postman_collection.json), [`postman/lab-4.postman_collection.json`](postman/lab-4.postman_collection.json)
+3. `/opsx-propose` с именем вроде `lab-5-report-queue`. Смотри `openspec/changes/lab-5-report-queue/`: `proposal.md`, `design.md`, `specs/`, `tasks.md`. В Non-goals должно быть написано, что sync-вызов storage для export убирается, а lab 6 не делается. Пока это не так — правь спеку.
 
-Документы: [`docs/architecture.md`](docs/architecture.md), [`docs/agent-platform/`](docs/agent-platform/), [`AGENTS.md`](AGENTS.md).
+4. «роль Implementer, `/opsx-apply`, только `tasks.md`». На `lab-4` эти правки не коммить.
 
-Ветки: `lab-1` → `lab-2` → `lab-3` → `lab-4` → `lab-5`.
+5. Проверка:
+
+```bash
+docker compose up --build
+curl -s http://localhost:3080/api/reports/by-course/export
+```
+
+Ждёшь `status: queued`. Потом объект в бакете. Если ответ снова с `objectKey` без очереди — это ещё lab 4, не сдавай.
+
+6. Reviewer смотрит, что README и `docs/architecture.md` описывают очередь, а не HttpService. Дальше `/opsx-archive` и push `lab-5`.
+
+Роли: [AGENTS.md](AGENTS.md). Шаги те же, что в [docs/agent-platform/pipeline.md](docs/agent-platform/pipeline.md).
+
+Спека этой лабы: `openspec/changes/archive/2026-10-10-lab-4-file-storage/`.
