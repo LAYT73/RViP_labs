@@ -18,7 +18,7 @@ docker compose up --build
 | Student + Swagger | http://localhost:3001/api/docs |
 | Report | только внутри Docker-сети |
 | File-storage | http://localhost:3003 |
-| MinIO API / Console | http://localhost:9000 / http://localhost:9001 |
+| MinIO API / Console | http://localhost:9000 / http://localhost:9001 (`pgsty/silo` image — `minio/minio` removed from Docker Hub) |
 | RabbitMQ AMQP / UI | http://localhost:5672 / http://localhost:15672 |
 | Postgres (host) | localhost:55432 |
 | Kibana (логи/трейсы) | http://localhost:5601 |

@@ -22,9 +22,11 @@ async function bootstrap() {
     },
   });
 
-  await app.startAllMicroservices();
+  // Listen first so OnModuleInit (bucket ensure) is fully settled before RMQ
+  // drains any backlog that would race CreateBucket.
   const port = process.env.PORT ? Number(process.env.PORT) : 3003;
   await app.listen(port);
+  await app.startAllMicroservices();
 }
 
 bootstrap();
