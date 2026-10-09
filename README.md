@@ -25,9 +25,11 @@ docker compose up --build
 | Elasticsearch | http://localhost:9200 |
 | APM Server | http://localhost:8200 |
 
+Схема сервисов и sequence export: [`docs/architecture.md`](docs/architecture.md).
+
 ### Lab-5: CSV → RabbitMQ → MinIO
 
-Цепочка: `gateway → student-service → report-service → RabbitMQ → file-storage-service → MinIO`.
+Цепочка: gateway → student-service → report-service → RabbitMQ → file-storage-service → Silo.
 
 `GET /api/reports/by-course` — синхронный JSON (как раньше).  
 `GET /api/reports/by-course/export` — публикует CSV в очередь `report.export.csv` и сразу отвечает:
@@ -62,6 +64,6 @@ chmod +x scripts/simulate-trace.sh
 
 Postman: [`postman/lab-3.postman_collection.json`](postman/lab-3.postman_collection.json), [`postman/lab-4.postman_collection.json`](postman/lab-4.postman_collection.json), [`postman/lab-5.postman_collection.json`](postman/lab-5.postman_collection.json)
 
-Agent platform: [`AGENTS.md`](AGENTS.md), [`docs/agent-platform/`](docs/agent-platform/).
+Документы: [`docs/architecture.md`](docs/architecture.md), [`docs/agent-platform/`](docs/agent-platform/), [`AGENTS.md`](AGENTS.md).
 
 Ветки: `lab-1` → `lab-2` → `lab-3` → `lab-4` → `lab-5`.
