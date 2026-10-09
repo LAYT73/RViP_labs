@@ -19,7 +19,7 @@ export class ReportsProxyController {
 
   @Get('by-course/export')
   @ApiOperation({
-    summary: 'Export course report CSV to MinIO (sync via report → file-storage)',
+    summary: 'Queue course report CSV export (report → RabbitMQ → file-storage)',
   })
   exportByCourse(): Promise<ExportByCourseResult> {
     return this.reportsProxy.exportByCourse();

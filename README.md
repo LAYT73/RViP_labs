@@ -2,7 +2,7 @@
 
 NestJS monorepo: учёт студентов (вариант 2).
 
-## Run (lab-4)
+## Run (lab-3 … lab-5)
 
 ```bash
 pnpm install
@@ -19,31 +19,35 @@ docker compose up --build
 | Report | только внутри Docker-сети |
 | File-storage | http://localhost:3003 |
 | MinIO API / Console | http://localhost:9000 / http://localhost:9001 |
+| RabbitMQ AMQP / UI | http://localhost:5672 / http://localhost:15672 |
 | Postgres (host) | localhost:55432 |
 | Kibana (логи/трейсы) | http://localhost:5601 |
 | Elasticsearch | http://localhost:9200 |
 | APM Server | http://localhost:8200 |
 
-### Lab-4: CSV → HttpService → MinIO
+### Lab-5: CSV → RabbitMQ → MinIO
 
-Цепочка: `gateway → student-service → report-service → HttpService POST → file-storage-service → MinIO`.
+Цепочка: `gateway → student-service → report-service → RabbitMQ → file-storage-service → MinIO`.
 
 `GET /api/reports/by-course` — синхронный JSON (как раньше).  
-`GET /api/reports/by-course/export` — считает отчёт, синхронно сохраняет CSV в file-storage/MinIO и отвечает метаданными файла + `rows`:
+`GET /api/reports/by-course/export` — публикует CSV в очередь `report.export.csv` и сразу отвечает:
 
 ```bash
 curl -s http://localhost:3080/api/reports/by-course/export | jq
-# { "id": "...", "objectKey": "reports/....csv", "bucket": "reports", "size": ..., "contentType": "text/csv", "createdAt": "...", "rows": [...] }
+# { "status": "queued", "jobId": "<uuid>", "rows": [...], "filename": "report-by-course.csv" }
 ```
 
+Consumer в `file-storage-service` пишет объект в бакет MinIO `reports`.  
 REST `POST /api/files` на file-storage остаётся для ручной отладки.  
-MinIO console: `minioadmin` / `minioadmin` на http://localhost:9001.
+RabbitMQ UI: `guest` / `guest` на http://localhost:15672.
 
-Асинхронная очередь (RabbitMQ) — ветка `lab-5`.
+### Lab-4 (ветка `lab-4`): sync HttpService → MinIO
+
+На ветке `lab-4` экспорт ходил синхронно: report → HttpService POST → file-storage → MinIO (ответ с метаданными файла).
 
 ### Observability (lab-3)
 
-В Kibana: **Observability → APM → Traces** (стек 7.17) — waterfall `gateway` → `student-service` → `report-service` → `file-storage-service`.  
+В Kibana: **Observability → APM → Traces** (стек 7.17) — waterfall `gateway` → `student-service` → `report-service` (+ async store через очередь).  
 В ответах API смотри заголовок `X-Trace-Id`.
 
 Симуляция стека вызовов (включая export):
@@ -56,7 +60,7 @@ chmod +x scripts/simulate-trace.sh
 Если поднимал старый Elasticsearch 8.x — сбрось том:
 `docker compose down -v` (сотрёт и Postgres data) или удали только `es_data` / используй новый `es_data_v7`.
 
-Postman: [`postman/lab-3.postman_collection.json`](postman/lab-3.postman_collection.json), [`postman/lab-4.postman_collection.json`](postman/lab-4.postman_collection.json)
+Postman: [`postman/lab-3.postman_collection.json`](postman/lab-3.postman_collection.json), [`postman/lab-4.postman_collection.json`](postman/lab-4.postman_collection.json), [`postman/lab-5.postman_collection.json`](postman/lab-5.postman_collection.json)
 
 Agent platform: [`AGENTS.md`](AGENTS.md), [`docs/agent-platform/`](docs/agent-platform/).
 

@@ -140,6 +140,21 @@ services:
     networks:
       - rvip-net
 
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rvip-rabbitmq
+    ports:
+      - "${RABBITMQ_HOST_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_HOST_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - rvip-net
+
   minio:
     image: minio/minio:RELEASE.2024-09-22T00-33-43Z
     container_name: rvip-minio
@@ -169,6 +184,8 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       apm-server:
         condition: service_started
     environment:
@@ -177,6 +194,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-reports}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
       ELASTIC_APM_SERVICE_NAME: file-storage-service
       ELASTIC_APM_SERVER_URL: http://apm-server:8200
       ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}
@@ -245,7 +263,7 @@ services:
     depends_on:
       liquibase:
         condition: service_completed_successfully
-      file-storage-service:
+      rabbitmq:
         condition: service_healthy
       apm-server:
         condition: service_started
@@ -256,7 +274,7 @@ services:
       DB_USER: ${DB_USER:-students}
       DB_PASSWORD: ${DB_PASSWORD:-students}
       DB_NAME: ${DB_NAME:-students}
-      FILE_STORAGE_SERVICE_URL: http://file-storage-service:${FILE_STORAGE_PORT:-3003}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
       ELASTIC_APM_SERVICE_NAME: report-service
       ELASTIC_APM_SERVER_URL: http://apm-server:8200
       ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}

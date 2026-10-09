@@ -8,7 +8,7 @@ context: |
   Branches: lab-1 → lab-2 → lab-3 → lab-4 → lab-5 cumulative.
   Agent platform: AGENTS.md + docs/agent-platform + .cursor/{rules,skills,hooks}.
   Lab-4: report CSV → sync HttpService POST → file-storage-service → MinIO (export returns file metadata + rows).
-  Lab-5 (branch): same path via RabbitMQ queue (export returns queued + jobId).
+  Lab-5: report CSV → RabbitMQ → file-storage consumer → MinIO (export returns {status:queued, jobId, rows, filename}).
 
 rules:
   proposal:

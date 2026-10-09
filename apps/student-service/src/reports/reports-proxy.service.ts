@@ -4,17 +4,11 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { CourseCountDto } from './course-count.dto';
 
-export type StoredFileMeta = {
-  id: string;
-  objectKey: string;
-  bucket: string;
-  size: number;
-  contentType: string;
-  createdAt: string;
-};
-
-export type ExportByCourseResult = StoredFileMeta & {
+export type ExportByCourseResult = {
+  status: 'queued';
+  jobId: string;
   rows: CourseCountDto[];
+  filename: string;
 };
 
 @Injectable()

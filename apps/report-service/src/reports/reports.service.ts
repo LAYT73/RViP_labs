@@ -1,43 +1,36 @@
-import {
-  BadGatewayException,
-  Injectable,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { Student } from '../students/student.entity';
 import { CourseCountDto } from './course-count.dto';
 
-export type StoredFileMeta = {
-  id: string;
-  objectKey: string;
-  bucket: string;
-  size: number;
-  contentType: string;
-  createdAt: string;
+export const REPORT_EXPORT_QUEUE = 'REPORT_EXPORT_QUEUE';
+export const REPORT_EXPORT_PATTERN = 'report.export.csv';
+
+export type ExportByCourseResult = {
+  status: 'queued';
+  jobId: string;
+  rows: CourseCountDto[];
+  filename: string;
 };
 
-export type ExportByCourseResult = StoredFileMeta & {
-  rows: CourseCountDto[];
+export type ReportExportMessage = {
+  filename: string;
+  content: string;
+  requestedAt: string;
 };
 
 @Injectable()
 export class ReportsService {
-  private readonly fileStorageUrl: string;
-
   constructor(
     @InjectRepository(Student)
     private readonly students: Repository<Student>,
-    private readonly http: HttpService,
-    config: ConfigService,
-  ) {
-    this.fileStorageUrl = config.get<string>(
-      'FILE_STORAGE_SERVICE_URL',
-      'http://localhost:3003',
-    );
-  }
+    @Inject(REPORT_EXPORT_QUEUE)
+    private readonly exportQueue: ClientProxy,
+  ) {}
 
   async byCourse(): Promise<CourseCountDto[]> {
     const rows = await this.students
@@ -57,19 +50,19 @@ export class ReportsService {
 
   async exportByCourse(): Promise<ExportByCourseResult> {
     const rows = await this.byCourse();
-    const csv =
+    const filename = 'report-by-course.csv';
+    const content =
       ['course,count', ...rows.map((r) => `${r.course},${r.count}`)].join('\n') +
       '\n';
-    try {
-      const response = await firstValueFrom(
-        this.http.post<StoredFileMeta>(`${this.fileStorageUrl}/api/files`, {
-          filename: 'report-by-course.csv',
-          content: csv,
-        }),
-      );
-      return { ...response.data, rows };
-    } catch {
-      throw new BadGatewayException('File storage service is unavailable');
-    }
+    const jobId = randomUUID();
+    const payload: ReportExportMessage = {
+      filename,
+      content,
+      requestedAt: new Date().toISOString(),
+    };
+
+    await firstValueFrom(this.exportQueue.emit(REPORT_EXPORT_PATTERN, payload));
+
+    return { status: 'queued', jobId, rows, filename };
   }
 }
