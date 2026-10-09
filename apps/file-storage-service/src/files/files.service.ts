@@ -47,9 +47,22 @@ export class FilesService implements OnModuleInit {
   private async ensureBucket(): Promise<void> {
     try {
       await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+      return;
     } catch {
       this.logger.log(`Creating bucket ${this.bucket}`);
+    }
+    try {
       await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
+    } catch (err) {
+      // Concurrent create / already-owned is fine for lab demos.
+      const name = (err as { name?: string }).name ?? '';
+      if (!/BucketAlreadyOwnedByYou|BucketAlreadyExists/i.test(name)) {
+        try {
+          await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+        } catch {
+          throw err;
+        }
+      }
     }
   }
 
@@ -68,6 +81,7 @@ export class FilesService implements OnModuleInit {
     const body = Buffer.from(content, 'utf8');
     const contentType = 'text/csv';
 
+    await this.ensureBucket();
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
