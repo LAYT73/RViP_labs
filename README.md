@@ -1,69 +1,68 @@
-# RViP labs
+# Lab 5
 
-NestJS monorepo: учёт студентов (вариант 2).
+Учёт студентов. На этой ветке CSV отчёта уходит в файловое хранилище через RabbitMQ, не прямым HTTP.
 
-## Run (lab-3 … lab-5)
+Схема: [docs/architecture.md](docs/architecture.md).
+
+## Поднять
 
 ```bash
 pnpm install
 docker compose up --build
 ```
 
-На macOS при первом старте Elasticsearch может потребоваться:
-`sudo sysctl -w vm.max_map_count=262144`
+Если Elasticsearch не стартует на Mac: `sudo sysctl -w vm.max_map_count=262144`.
 
-| Что | URL |
-|-----|-----|
-| Gateway | http://localhost:3080 |
-| Student + Swagger | http://localhost:3001/api/docs |
-| Report | только внутри Docker-сети |
-| File-storage | http://localhost:3003 |
-| MinIO API / Console | http://localhost:9000 / http://localhost:9001 (`pgsty/silo` image — `minio/minio` removed from Docker Hub) |
-| RabbitMQ AMQP / UI | http://localhost:5672 / http://localhost:15672 |
-| Postgres (host) | localhost:55432 |
-| Kibana (логи/трейсы) | http://localhost:5601 |
-| Elasticsearch | http://localhost:9200 |
-| APM Server | http://localhost:8200 |
+| Куда | Зачем |
+|------|--------|
+| http://localhost:3080 | Единственный вход для клиента |
+| http://localhost:3001/api/docs | Swagger |
+| http://localhost:15672 | RabbitMQ, `guest` / `guest` |
+| http://localhost:9001 | Консоль хранилища, `minioadmin` / `minioadmin` |
+| http://localhost:5601 | Kibana, трейсы |
 
-Схема сервисов и sequence export: [`docs/architecture.md`](docs/architecture.md).
+Report с хоста не открывается.
 
-### Lab-5: CSV → RabbitMQ → MinIO
-
-Цепочка: gateway → student-service → report-service → RabbitMQ → file-storage-service → Silo.
-
-`GET /api/reports/by-course` — синхронный JSON (как раньше).  
-`GET /api/reports/by-course/export` — публикует CSV в очередь `report.export.csv` и сразу отвечает:
+Проверка:
 
 ```bash
-curl -s http://localhost:3080/api/reports/by-course/export | jq
-# { "status": "queued", "jobId": "<uuid>", "rows": [...], "filename": "report-by-course.csv" }
+curl -s http://localhost:3080/api/reports/by-course/export
 ```
 
-Consumer в `file-storage-service` пишет объект в бакет MinIO `reports`.  
-REST `POST /api/files` на file-storage остаётся для ручной отладки.  
-RabbitMQ UI: `guest` / `guest` на http://localhost:15672.
+Ответ сразу `status: queued` и `jobId`. Файл в бакете `reports` появляется после consumer. JSON-отчёт без очереди: `GET /api/reports/by-course`.
 
-### Lab-4 (ветка `lab-4`): sync HttpService → MinIO
+Postman: [postman/lab-5.postman_collection.json](postman/lab-5.postman_collection.json).
 
-На ветке `lab-4` экспорт ходил синхронно: report → HttpService POST → file-storage → MinIO (ответ с метаданными файла).
+## Как делать следующую лабу
 
-### Observability (lab-3)
+Следующая по методичке — lab 6: основной сервис читает отчёт из файлового хранилища через аналог `CompletableFuture` (у нас это async в Nest, не новый брокер). JWT и сортировка — не эта лаба.
 
-В Kibana: **Observability → APM → Traces** (стек 7.17) — waterfall `gateway` → `student-service` → `report-service` (+ async store через очередь).  
-В ответах API смотри заголовок `X-Trace-Id`.
+Не пиши агенту «сделай 6». Он начнёт код без контракта. Порядок такой.
 
-Симуляция стека вызовов (включая export):
+1. Ветка от этой, не от `lab-4`:
 
 ```bash
-chmod +x scripts/simulate-trace.sh
-./scripts/simulate-trace.sh
+git checkout lab-5
+git checkout -b lab-6
 ```
 
-Если поднимал старый Elasticsearch 8.x — сбрось том:
-`docker compose down -v` (сотрёт и Postgres data) или удали только `es_data` / используй новый `es_data_v7`.
+2. В чате Cursor: «роль Architect, код не пиши». Попроси прочитать пункт lab 6 в `task/task.md` и текущие [docs/architecture.md](docs/architecture.md) и `openspec/specs/`. Запусти `/opsx-explore`. На выходе должны быть ответы: кто ходит в storage, что возвращает API, что остаётся в очереди как есть.
 
-Postman: [`postman/lab-3.postman_collection.json`](postman/lab-3.postman_collection.json), [`postman/lab-4.postman_collection.json`](postman/lab-4.postman_collection.json), [`postman/lab-5.postman_collection.json`](postman/lab-5.postman_collection.json)
+3. `/opsx-propose` с именем вроде `lab-6-async-file-read`. В `openspec/changes/lab-6-async-file-read/` появятся `proposal.md`, `design.md`, `specs/`, `tasks.md`. Прочитай их сам. Пока задачи не сходятся с методичкой, код не нужен: правь спеку.
 
-Документы: [`docs/architecture.md`](docs/architecture.md), [`docs/agent-platform/`](docs/agent-platform/), [`AGENTS.md`](AGENTS.md).
+4. Когда tasks устраивают: «роль Implementer, `/opsx-apply`, только `tasks.md`». Агент не добавляет lab 7. Секреты — в `.env.example`, не в `.env`.
 
-Ветки: `lab-1` → `lab-2` → `lab-3` → `lab-4` → `lab-5`.
+5. Проверка на живом compose, не «собралось»:
+
+```bash
+docker compose up --build
+curl -sD- http://localhost:3080/api/reports/by-course/export
+```
+
+Плюс новый сценарий чтения файла из storage, как его зафиксировали в спеке. Упало — обратно Implementer с командой, которая падает.
+
+6. «роль Reviewer»: контракт, порты, README этой ветки. Потом `/opsx-archive` и push `lab-6`.
+
+Роли и стоп-линии: [AGENTS.md](AGENTS.md). Подробнее по шагам: [docs/agent-platform/pipeline.md](docs/agent-platform/pipeline.md).
+
+Спеки этой лабы уже в архиве: `openspec/changes/archive/2026-10-10-lab-5-report-queue/`.
