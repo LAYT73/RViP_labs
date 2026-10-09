@@ -1,7 +1,7 @@
 # course-reports Specification
 
 ## Purpose
-Course enrollment reporting: JSON counts by course and CSV export persisted through file-storage.
+Course enrollment reporting: JSON counts by course and async CSV export via RabbitMQ to file-storage.
 ## Requirements
 ### Requirement: Course enrollment report
 
@@ -24,14 +24,14 @@ The report service SHALL return counts of enrolled students grouped by course fr
 
 ### Requirement: Sync CSV export to file-storage
 
-The report service SHALL expose `GET /api/reports/by-course/export` that builds a CSV of enrolled counts by course, POSTs it to file-storage-service via HttpService (Nest axios), and returns stored-file metadata plus the report `rows`.
+The report service SHALL expose `GET /api/reports/by-course/export` that builds a CSV of enrolled counts by course, publishes it to the report export RabbitMQ queue, and returns a queued acknowledgment — not synchronous file-storage metadata.
 
 #### Scenario: Successful export
 
 - **WHEN** client calls `GET /api/reports/by-course/export`
-- **THEN** report-service POSTs CSV to file-storage and returns metadata fields (`id`, `objectKey`, `bucket`, `size`, `contentType`, `createdAt`) together with `rows` as `{ course, count }[]`
+- **THEN** report-service publishes the CSV to the queue and returns `{ status: "queued", jobId, rows, filename }` where `rows` is `{ course, count }[]` and `filename` identifies the intended stored object
 
-#### Scenario: File storage unavailable
+#### Scenario: Broker unavailable
 
-- **WHEN** file-storage-service is unreachable
-- **THEN** report-service returns 502
+- **WHEN** RabbitMQ is unreachable during export
+- **THEN** report-service fails the request (error / 5xx) rather than returning a successful queued status

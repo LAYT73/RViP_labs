@@ -1,7 +1,7 @@
 # file-storage Specification
 
 ## Purpose
-Store and retrieve report CSV files via a Nest file-storage service backed by MinIO (S3-compatible object storage).
+Store and retrieve report CSV files via a Nest file-storage service backed by MinIO; also consume async export jobs from RabbitMQ.
 ## Requirements
 ### Requirement: Store report file in MinIO
 
@@ -30,3 +30,12 @@ The file-storage service SHALL expose metadata and content by id.
 
 - **WHEN** client calls `GET /api/files/:id/content`
 - **THEN** response body is the CSV text with `Content-Type: text/csv`
+
+### Requirement: Consume report export messages
+
+In addition to the REST store API, the file-storage service SHALL consume `report.export.csv` messages and persist the payload content to MinIO.
+
+#### Scenario: Message stored
+
+- **WHEN** a valid export message arrives on the queue
+- **THEN** file-storage stores the CSV and logs the consume event

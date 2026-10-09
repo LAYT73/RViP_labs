@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-10-10
+goal: Lab-5 — async report CSV export via RabbitMQ to file-storage consumer
