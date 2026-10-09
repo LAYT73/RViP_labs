@@ -1,0 +1,14 @@
+---
+description: NestJS monorepo conventions for RViP labs
+globs: apps/**/*.ts
+alwaysApply: false
+---
+
+# NestJS monorepo
+
+- Thin controllers, logic in services; feature modules.
+- Config via `ConfigModule` / env — no hardcoded hosts in code defaults beyond localhost fallbacks.
+- TypeORM: `synchronize: false` always; schema only via Liquibase.
+- New service must mirror siblings: `apm.ts`, `trace-logging.interceptor.ts`, `/health`, Dockerfile, `tsconfig.app.json`, nest-cli project + package scripts.
+- Server-to-server HTTP = `HttpService` (@nestjs/axios), not raw ad-hoc clients unless already used (gateway proxy).
+- No AI-slop comments; no drive-by refactors outside the task.

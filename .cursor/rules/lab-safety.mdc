@@ -1,0 +1,13 @@
+---
+description: Branch and lab boundary safety
+alwaysApply: true
+---
+
+# Lab safety
+
+- Branches are cumulative: only additive changes for the current lab.
+- Do not implement the next lab's feature on the current branch (e.g. no RabbitMQ on lab-4).
+- Never `docker compose down -v` or `git push --force` unless the user explicitly asked in the current message.
+- Do not commit `.env` secrets; update `.env.example` instead.
+- Keep gateway as the public API entry; hide internal services when the lab requires it.
+- Map methodichka terms in README when introducing equivalents (RestTemplate → HttpService, etc.).

@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { CourseCountDto } from './course-count.dto';
-import { ReportsService } from './reports.service';
+import { ExportByCourseResult, ReportsService } from './reports.service';
 
 @Controller('api/reports')
 export class ReportsController {
@@ -9,5 +9,10 @@ export class ReportsController {
   @Get('by-course')
   byCourse(): Promise<CourseCountDto[]> {
     return this.reportsService.byCourse();
+  }
+
+  @Get('by-course/export')
+  exportByCourse(): Promise<ExportByCourseResult> {
+    return this.reportsService.exportByCourse();
   }
 }

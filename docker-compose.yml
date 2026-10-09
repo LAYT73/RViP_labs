@@ -140,6 +140,63 @@ services:
     networks:
       - rvip-net
 
+  minio:
+    image: minio/minio:RELEASE.2024-09-22T00-33-43Z
+    container_name: rvip-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "${MINIO_API_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - rvip-net
+
+  file-storage-service:
+    build:
+      context: .
+      dockerfile: apps/file-storage-service/Dockerfile
+    container_name: rvip-file-storage-service
+    depends_on:
+      minio:
+        condition: service_healthy
+      apm-server:
+        condition: service_started
+    environment:
+      PORT: ${FILE_STORAGE_PORT:-3003}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-reports}
+      ELASTIC_APM_SERVICE_NAME: file-storage-service
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+      ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}
+    ports:
+      - "${FILE_STORAGE_HOST_PORT:-3003}:${FILE_STORAGE_PORT:-3003}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||3003)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - rvip-net
+
   student-service:
     build:
       context: .
@@ -188,6 +245,8 @@ services:
     depends_on:
       liquibase:
         condition: service_completed_successfully
+      file-storage-service:
+        condition: service_healthy
       apm-server:
         condition: service_started
     environment:
@@ -197,6 +256,7 @@ services:
       DB_USER: ${DB_USER:-students}
       DB_PASSWORD: ${DB_PASSWORD:-students}
       DB_NAME: ${DB_NAME:-students}
+      FILE_STORAGE_SERVICE_URL: http://file-storage-service:${FILE_STORAGE_PORT:-3003}
       ELASTIC_APM_SERVICE_NAME: report-service
       ELASTIC_APM_SERVER_URL: http://apm-server:8200
       ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}
@@ -241,6 +301,7 @@ services:
 volumes:
   postgres_data:
   es_data_v7:
+  minio_data:
 
 networks:
   rvip-net:

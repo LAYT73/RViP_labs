@@ -5,7 +5,10 @@ context: |
   Domain: student records (variant 2) — enroll, expel, edit, transfer course; course enrollment report.
   Conventions: feature modules, thin controllers, env via ConfigModule, no AI-slop comments, short README.
   Mapping: RestTemplate → HttpService (@nestjs/axios); gateway → apps/gateway Nest proxy.
-  Branches: lab-1 → lab-2 → lab-3 cumulative.
+  Branches: lab-1 → lab-2 → lab-3 → lab-4 → lab-5 cumulative.
+  Agent platform: AGENTS.md + docs/agent-platform + .cursor/{rules,skills,hooks}.
+  Lab-4: report CSV → sync HttpService POST → file-storage-service → MinIO (export returns file metadata + rows).
+  Lab-5 (branch): same path via RabbitMQ queue (export returns queued + jobId).
 
 rules:
   proposal:

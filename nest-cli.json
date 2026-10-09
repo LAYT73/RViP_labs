@@ -28,6 +28,15 @@
         "tsConfigPath": "apps/report-service/tsconfig.app.json"
       }
     },
+    "file-storage-service": {
+      "type": "application",
+      "root": "apps/file-storage-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/file-storage-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/file-storage-service/tsconfig.app.json"
+      }
+    },
     "gateway": {
       "type": "application",
       "root": "apps/gateway",

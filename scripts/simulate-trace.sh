@@ -82,6 +82,7 @@ else
 fi
 
 req "report by-course" GET /api/reports/by-course
+req "export by-course" GET /api/reports/by-course/export
 
 echo
 echo "==> Waiting ${FLUSH_SEC}s for APM flush..."
