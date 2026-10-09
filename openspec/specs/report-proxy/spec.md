@@ -1,7 +1,7 @@
 # report-proxy Specification
 
 ## Purpose
-TBD - created by archiving change lab-3-http-proxy-report. Update Purpose after archive.
+Student-service HttpService proxy for report-service APIs so clients never call report-service directly.
 ## Requirements
 ### Requirement: Report via student service HttpService
 
@@ -17,3 +17,16 @@ The student service SHALL expose `GET /api/reports/by-course` and MUST obtain th
 - **WHEN** report-service is unreachable
 - **THEN** student-service returns 502 with an error message
 
+### Requirement: Proxy CSV export via student service
+
+The student service SHALL expose `GET /api/reports/by-course/export` and MUST obtain the result by calling report-service with HttpService, returning the same payload.
+
+#### Scenario: Successful export proxy
+
+- **WHEN** client calls student-service `GET /api/reports/by-course/export`
+- **THEN** student-service calls report-service over HTTP and returns the export payload (file metadata + `rows`)
+
+#### Scenario: Upstream failure on export
+
+- **WHEN** report-service is unreachable during export
+- **THEN** student-service returns 502
