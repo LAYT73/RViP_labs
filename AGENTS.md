@@ -9,7 +9,8 @@
 - Ветки кумулятивные: `lab-1` → `lab-2` → `lab-3` → `lab-4` → `lab-5`.
 - Spring-термины методички → Nest: RestTemplate → `HttpService`, CompletableFuture → позже.
 
-Подробности агентной платформы: [`docs/agent-platform/`](docs/agent-platform/README.md).
+Архитектура приложения этой ветки: [`docs/architecture.md`](docs/architecture.md).  
+Агентная платформа: [`docs/agent-platform/`](docs/agent-platform/README.md).
 
 ## Роли (выбирать явно)
 
@@ -24,9 +25,7 @@
 
 ## Обязательный пайплайн
 
-```text
-Explore → Propose (OpenSpec) → Apply → Verify → Archive → Demo notes
-```
+Explore → Propose (OpenSpec) → Apply → Verify → Archive. Схема: [`docs/agent-platform/pipeline.md`](docs/agent-platform/pipeline.md).
 
 1. **Explore** — `/opsx-explore` или skill `openspec-explore`: уточнить ambiguity.
 2. **Propose** — `/opsx-propose`: `proposal` + `specs` + `design` + `tasks`.
