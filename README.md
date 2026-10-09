@@ -1,67 +1,79 @@
-# Lab 4
+# RViP labs
 
-Учёт студентов. На этой ветке CSV отчёта report кладёт в файловое хранилище синхронным `HttpService`. Очереди нет.
+Учёт студентов. Ветки копятся: `lab-1` → `lab-2` → … Что уже собрано на той, где ты стоишь, написано внизу. Как устроены сервисы сейчас: [docs/architecture.md](docs/architecture.md).
 
-Схема: [docs/architecture.md](docs/architecture.md).
-
-## Поднять
+Поднять то, что на ветке:
 
 ```bash
 pnpm install
 docker compose up --build
 ```
 
-Если Elasticsearch не стартует на Mac: `sudo sysctl -w vm.max_map_count=262144`.
+Клиент ходит на http://localhost:3080. Если Elasticsearch на Mac не стартует: `sudo sysctl -w vm.max_map_count=262144`.
 
-| Куда | Зачем |
-|------|--------|
-| http://localhost:3080 | Единственный вход для клиента |
-| http://localhost:3001/api/docs | Swagger |
-| http://localhost:9001 | Консоль хранилища, `minioadmin` / `minioadmin` |
-| http://localhost:5601 | Kibana, трейсы |
+## Следующая лаба
 
-Report с хоста не открывается. RabbitMQ на этой ветке не запускается.
+Текст задания — в `task/task.md`, номер на один больше текущей ветки. Агенту этот номер говоришь ты. Ниже порядок, он один и тот же для любой лабы.
 
-Проверка:
+Не начинай с «сделай лабу». Сначала договоритесь, что именно меняется, и только потом код.
 
-```bash
-curl -s http://localhost:3080/api/reports/by-course/export
-```
+**1. Ветка**
 
-В ответе сразу `id`, `objectKey`, `bucket` и `rows`. Это не `queued`. JSON без файла: `GET /api/reports/by-course`.
-
-Postman: [postman/lab-4.postman_collection.json](postman/lab-4.postman_collection.json).
-
-## Как делать следующую лабу
-
-Следующая по методичке — lab 5: те же данные CSV уходят в storage через очередь, а не через `HttpService`. Чтение файла «как CompletableFuture» и JWT — не эта лаба.
-
-Не пиши агенту «сделай 5 и заодно очередь с футурами». Порядок такой.
-
-1. Ветка от этой:
+От текущей, не от старой:
 
 ```bash
-git checkout lab-4
-git checkout -b lab-5
+git checkout -b lab-N
 ```
 
-2. В чате Cursor: «роль Architect, код не пиши». Попроси прочитать lab 5 в `task/task.md`, [docs/architecture.md](docs/architecture.md) и `openspec/specs/file-storage`. Запусти `/opsx-explore`. Нужно явно решить: export больше не ждёт `POST /api/files`, клиент получает факт постановки в очередь, storage забирает сообщение сам.
+**2. Разобраться, без кода**
 
-3. `/opsx-propose` с именем вроде `lab-5-report-queue`. Смотри `openspec/changes/lab-5-report-queue/`: `proposal.md`, `design.md`, `specs/`, `tasks.md`. В Non-goals должно быть написано, что sync-вызов storage для export убирается, а lab 6 не делается. Пока это не так — правь спеку.
+В чат Cursor:
 
-4. «роль Implementer, `/opsx-apply`, только `tasks.md`». На `lab-4` эти правки не коммить.
+> Роль Architect. Код не пиши. Прочитай в task/task.md только следующую лабу, docs/architecture.md и openspec/specs. Запусти /opsx-explore.
 
-5. Проверка:
+Ты должен получить ответы своими словами: какой сервис что делает, синхронно или через очередь, что снаружи, чего в этой лабе не будет. Если ответ мутный — переспрашивай. К коду ещё рано.
 
-```bash
-docker compose up --build
-curl -s http://localhost:3080/api/reports/by-course/export
-```
+**3. Спека**
 
-Ждёшь `status: queued`. Потом объект в бакете. Если ответ снова с `objectKey` без очереди — это ещё lab 4, не сдавай.
+> /opsx-propose
 
-6. Reviewer смотрит, что README и `docs/architecture.md` описывают очередь, а не HttpService. Дальше `/opsx-archive` и push `lab-5`.
+Имя папки пусть будет по лабе, например `lab-N-....`. Появятся файлы в `openspec/changes/`:
 
-Роли: [AGENTS.md](AGENTS.md). Шаги те же, что в [docs/agent-platform/pipeline.md](docs/agent-platform/pipeline.md).
+- `proposal.md` — зачем и что не входит
+- `design.md` — как связать сервисы
+- `specs/` — что можно проверить
+- `tasks.md` — список работ
 
-Спека этой лабы: `openspec/changes/archive/2026-10-10-lab-4-file-storage/`.
+Прочитай сам. Не сходится с методичкой — правь эти файлы, не проси «допиши в коде».
+
+**4. Код**
+
+Когда список задач устраивает:
+
+> Роль Implementer. /opsx-apply. Только tasks.md. Следующую лабу не трогай.
+
+`.env` в git не кладём, новые переменные — в `.env.example`.
+
+**5. Проверка**
+
+> Роль Verifier. Подними compose и пройди сценарий из спеки. Код не чини, напиши команды и коды ответов.
+
+Смотри руками то, что обещала спека. «Собралось» не считается.
+
+**6. Сдать ветку**
+
+> Роль Reviewer. Сверь README, docs/architecture.md и openspec с тем, что реально поднято.
+
+Потом `/opsx-archive` и push ветки. Архив уезжает в `openspec/changes/archive/`, живые требования остаются в `openspec/specs/`.
+
+Роли одной строкой: [AGENTS.md](AGENTS.md).
+
+## Что уже есть
+
+**1.** Один сервис принимает студента, правит, переводит на другой курс и отчисляет. База в Docker, таблица одна, схему накатывает Liquibase. API можно открыть в Swagger.
+
+**2.** Второй сервис по той же базе говорит, сколько студентов на каждом курсе. Наружу оба ходят через шлюз. Коллекция для проверки — Postman.
+
+**3.** Второй сервис с компьютера больше не открыть. Отчёт запрашивает первый сервис сам, обычным HTTP. Рядом подняты логи и трейсы: Kibana на http://localhost:5601, в ответе есть `X-Trace-Id`.
+
+**4.** Отчёт ещё сохраняется как CSV. Отдельный сервис кладёт файл в хранилище (S3). Report отдаёт файл туда прямым HTTP-вызовом, в ответе сразу метаданные файла.
