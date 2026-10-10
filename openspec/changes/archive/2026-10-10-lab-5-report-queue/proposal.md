@@ -33,3 +33,9 @@ Methodichka lab-5: send report data to the file-storage service through a messag
 - `apps/report-service/src/reports/**`, `apps/file-storage-service/**` (consumer + hybrid HTTP/RMQ bootstrap)
 - `apps/student-service/src/reports/**` (export response type)
 - `docker-compose.yml`, `.env.example`, `postman/lab-5.postman_collection.json`, README
+
+## Assumptions
+
+- В очередь уходит только CSV-экспорт. `GET /api/reports/by-course` остаётся обычным HTTP.
+- Имя файла в сообщении не становится ключом S3. Ключ по-прежнему `reports/{uuid}.csv`.
+- Нет API «готов ли job». Скачивание — `GET /api/files/:id/content`, когда объект уже записан.

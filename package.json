@@ -19,7 +19,7 @@
     "start:gateway": "nest start gateway",
     "start:gateway:dev": "nest start gateway --watch",
     "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
-    "test": "tsc -p tsconfig.tests.json && node --test dist-tests/file-storage-service/src/files/storage-errors.test.js"
+    "test": "tsc -p tsconfig.tests.json && node --test dist-tests/file-storage-service/src/files/storage-errors.test.js dist-tests/file-storage-service/src/files/export-message.test.js dist-tests/report-service/src/reports/queue-export.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1148.0",

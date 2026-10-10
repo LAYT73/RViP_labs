@@ -7,5 +7,11 @@
     "sourceMap": false,
     "incremental": false
   },
-  "include": ["apps/file-storage-service/src/files/**/*.ts"]
+  "include": [
+    "apps/file-storage-service/src/files/**/*.ts",
+    "apps/report-service/src/reports/course-count.dto.ts",
+    "apps/report-service/src/reports/course-csv.ts",
+    "apps/report-service/src/reports/queue-export.ts",
+    "apps/report-service/src/reports/queue-export.test.ts"
+  ]
 }

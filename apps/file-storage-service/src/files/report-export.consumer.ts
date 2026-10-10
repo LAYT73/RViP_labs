@@ -1,12 +1,7 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
+import { exportToStore } from './export-message';
 import { FilesService } from './files.service';
-
-export type ReportExportMessage = {
-  filename: string;
-  content: string;
-  requestedAt: string;
-};
 
 @Controller()
 export class ReportExportConsumer {
@@ -15,13 +10,13 @@ export class ReportExportConsumer {
   constructor(private readonly filesService: FilesService) {}
 
   @EventPattern('report.export.csv')
-  async handleExport(@Payload() data: ReportExportMessage): Promise<void> {
+  async handleExport(
+    @Payload() data: { content?: string; filename?: string; requestedAt?: string },
+  ): Promise<void> {
+    const stored = exportToStore(data);
     this.logger.log(
-      `Consuming report.export.csv filename=${data?.filename} requestedAt=${data?.requestedAt}`,
+      `Consuming report.export.csv filename=${stored.filename} requestedAt=${data?.requestedAt}`,
     );
-    await this.filesService.store(
-      data.content,
-      data.filename ?? 'report-by-course.csv',
-    );
+    await this.filesService.store(stored.content, stored.filename);
   }
 }

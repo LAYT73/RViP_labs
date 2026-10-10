@@ -6,22 +6,16 @@ import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { Student } from '../students/student.entity';
 import { CourseCountDto } from './course-count.dto';
+import {
+  buildQueuedExport,
+  REPORT_EXPORT_PATTERN,
+  type QueuedExport,
+  type ReportExportMessage,
+} from './queue-export';
 
 export const REPORT_EXPORT_QUEUE = 'REPORT_EXPORT_QUEUE';
-export const REPORT_EXPORT_PATTERN = 'report.export.csv';
-
-export type ExportByCourseResult = {
-  status: 'queued';
-  jobId: string;
-  rows: CourseCountDto[];
-  filename: string;
-};
-
-export type ReportExportMessage = {
-  filename: string;
-  content: string;
-  requestedAt: string;
-};
+export { REPORT_EXPORT_PATTERN };
+export type { ReportExportMessage, QueuedExport as ExportByCourseResult };
 
 @Injectable()
 export class ReportsService {
@@ -48,21 +42,15 @@ export class ReportsService {
     }));
   }
 
-  async exportByCourse(): Promise<ExportByCourseResult> {
+  async exportByCourse(): Promise<QueuedExport> {
     const rows = await this.byCourse();
-    const filename = 'report-by-course.csv';
-    const content =
-      ['course,count', ...rows.map((r) => `${r.course},${r.count}`)].join('\n') +
-      '\n';
-    const jobId = randomUUID();
-    const payload: ReportExportMessage = {
-      filename,
-      content,
-      requestedAt: new Date().toISOString(),
-    };
+    const { message, result } = buildQueuedExport(
+      rows,
+      randomUUID(),
+      new Date().toISOString(),
+    );
 
-    await firstValueFrom(this.exportQueue.emit(REPORT_EXPORT_PATTERN, payload));
-
-    return { status: 'queued', jobId, rows, filename };
+    await firstValueFrom(this.exportQueue.emit(REPORT_EXPORT_PATTERN, message));
+    return result;
   }
 }
