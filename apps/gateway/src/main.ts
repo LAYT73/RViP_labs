@@ -16,6 +16,9 @@ async function bootstrap() {
   const studentUrl = config.get<string>('STUDENT_SERVICE_URL', 'http://localhost:3001');
 
   const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.get('/health', (_req: Request, res: Response) => {
+    res.json({ status: 'ok' });
+  });
   const studentHealth = createUpstreamHealthGuard(studentUrl, 'student-service');
 
   expressApp.use((req: Request, res: Response, next: NextFunction) => {

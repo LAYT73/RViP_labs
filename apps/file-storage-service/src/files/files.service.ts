@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
   OnModuleInit,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -16,6 +17,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import { FileMetadataDto } from './file-metadata.dto';
+import { MAX_FILE_CHARS, safeFilename, storageFailure } from './storage-errors';
 
 @Injectable()
 export class FilesService implements OnModuleInit {
@@ -70,11 +72,15 @@ export class FilesService implements OnModuleInit {
     return `reports/${id}.csv`;
   }
 
-  async store(content: string, filename = 'report.csv'): Promise<FileMetadataDto> {
-    if (content === undefined || content === null) {
+  async store(content: string, filename?: string): Promise<FileMetadataDto> {
+    if (typeof content !== 'string' || content.length === 0) {
       throw new BadRequestException('content is required');
     }
+    if (content.length > MAX_FILE_CHARS) {
+      throw new BadRequestException('content is too large');
+    }
 
+    const storedName = safeFilename(filename);
     const id = randomUUID();
     const objectKey = this.objectKeyFor(id);
     const createdAt = new Date().toISOString();
@@ -90,7 +96,7 @@ export class FilesService implements OnModuleInit {
         ContentType: contentType,
         Metadata: {
           id,
-          filename,
+          filename: storedName,
           createdat: createdAt,
         },
       }),
@@ -102,6 +108,7 @@ export class FilesService implements OnModuleInit {
       bucket: this.bucket,
       size: body.length,
       contentType,
+      filename: storedName,
       createdAt,
     };
   }
@@ -119,10 +126,11 @@ export class FilesService implements OnModuleInit {
         bucket: this.bucket,
         size: head.ContentLength ?? 0,
         contentType: head.ContentType ?? 'text/csv',
+        filename: head.Metadata?.filename ?? 'report.csv',
         createdAt: head.Metadata?.createdat ?? new Date(0).toISOString(),
       };
-    } catch {
-      throw new NotFoundException(`File ${id} not found`);
+    } catch (err) {
+      throw this.toHttp(err, id);
     }
   }
 
@@ -139,10 +147,18 @@ export class FilesService implements OnModuleInit {
 
       return result.Body.transformToString('utf8');
     } catch (err) {
-      if (err instanceof NotFoundException) {
+      if (err instanceof NotFoundException || err instanceof ServiceUnavailableException) {
         throw err;
       }
-      throw new NotFoundException(`File ${id} not found`);
+      throw this.toHttp(err, id);
     }
+  }
+
+  private toHttp(err: unknown, id: string): NotFoundException | ServiceUnavailableException {
+    if (storageFailure(err) === 'missing') {
+      return new NotFoundException(`File ${id} not found`);
+    }
+    this.logger.error(`Object storage error for ${id}`);
+    return new ServiceUnavailableException('Object storage is unavailable');
   }
 }

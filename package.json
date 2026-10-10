@@ -18,7 +18,8 @@
     "start:file-storage:dev": "nest start file-storage-service --watch",
     "start:gateway": "nest start gateway",
     "start:gateway:dev": "nest start gateway --watch",
-    "lint": "eslint \"{apps,libs}/**/*.ts\" --fix"
+    "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
+    "test": "node --experimental-strip-types --test apps/file-storage-service/src/files/storage-errors.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1148.0",
