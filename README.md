@@ -9,7 +9,7 @@ pnpm install
 docker compose up --build
 ```
 
-Клиент ходит на http://localhost:3080. Если Elasticsearch на Mac не стартует: `sudo sysctl -w vm.max_map_count=262144`. Если порт хранилища занят, задай другие: `MINIO_API_HOST_PORT=19000 MINIO_CONSOLE_HOST_PORT=19001`. Текст методички — локальный `task/task.md`, в git его нет.
+Клиент ходит на http://localhost:3080. Если Elasticsearch на Mac не стартует: `sudo sysctl -w vm.max_map_count=262144`. Если порт хранилища занят, задай другие: `MINIO_API_HOST_PORT=19000 MINIO_CONSOLE_HOST_PORT=19001`. Текст методички — [task/task.md](task/task.md). Решения по хранилищу и прогон тестов — [docs/lab-4-notes.md](docs/lab-4-notes.md).
 
 ## Следующая лаба
 

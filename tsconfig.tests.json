@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-tests",
+    "rootDir": "apps",
+    "declaration": false,
+    "sourceMap": false,
+    "incremental": false
+  },
+  "include": ["apps/file-storage-service/src/files/**/*.ts"]
+}

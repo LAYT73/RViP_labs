@@ -9,15 +9,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   CreateBucketCommand,
-  GetObjectCommand,
   HeadBucketCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { randomUUID } from 'crypto';
 import { FileMetadataDto } from './file-metadata.dto';
-import { MAX_FILE_CHARS, safeFilename, storageFailure } from './storage-errors';
+import { putReport, headReport, readReport } from './s3-files';
+import { storageFailure } from './storage-errors';
 
 @Injectable()
 export class FilesService implements OnModuleInit {
@@ -68,93 +65,36 @@ export class FilesService implements OnModuleInit {
     }
   }
 
-  private objectKeyFor(id: string): string {
-    return `reports/${id}.csv`;
-  }
-
   async store(content: string, filename?: string): Promise<FileMetadataDto> {
-    if (typeof content !== 'string' || content.length === 0) {
-      throw new BadRequestException('content is required');
-    }
-    if (content.length > MAX_FILE_CHARS) {
-      throw new BadRequestException('content is too large');
-    }
-
-    const storedName = safeFilename(filename);
-    const id = randomUUID();
-    const objectKey = this.objectKeyFor(id);
-    const createdAt = new Date().toISOString();
-    const body = Buffer.from(content, 'utf8');
-    const contentType = 'text/csv';
-
     await this.ensureBucket();
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-        Body: body,
-        ContentType: contentType,
-        Metadata: {
-          id,
-          filename: storedName,
-          createdat: createdAt,
-        },
-      }),
-    );
-
-    return {
-      id,
-      objectKey,
-      bucket: this.bucket,
-      size: body.length,
-      contentType,
-      filename: storedName,
-      createdAt,
-    };
+    try {
+      return await putReport(this.client, this.bucket, content, filename);
+    } catch (err) {
+      throw this.toHttp(err, 'new');
+    }
   }
 
   async getMetadata(id: string): Promise<FileMetadataDto> {
-    const objectKey = this.objectKeyFor(id);
     try {
-      const head = await this.client.send(
-        new HeadObjectCommand({ Bucket: this.bucket, Key: objectKey }),
-      );
-
-      return {
-        id,
-        objectKey,
-        bucket: this.bucket,
-        size: head.ContentLength ?? 0,
-        contentType: head.ContentType ?? 'text/csv',
-        filename: head.Metadata?.filename ?? 'report.csv',
-        createdAt: head.Metadata?.createdat ?? new Date(0).toISOString(),
-      };
+      return await headReport(this.client, this.bucket, id);
     } catch (err) {
       throw this.toHttp(err, id);
     }
   }
 
   async getContent(id: string): Promise<string> {
-    const objectKey = this.objectKeyFor(id);
     try {
-      const result = await this.client.send(
-        new GetObjectCommand({ Bucket: this.bucket, Key: objectKey }),
-      );
-
-      if (!result.Body) {
-        throw new NotFoundException(`File ${id} not found`);
-      }
-
-      return result.Body.transformToString('utf8');
+      return await readReport(this.client, this.bucket, id);
     } catch (err) {
-      if (err instanceof NotFoundException || err instanceof ServiceUnavailableException) {
-        throw err;
-      }
       throw this.toHttp(err, id);
     }
   }
 
-  private toHttp(err: unknown, id: string): NotFoundException | ServiceUnavailableException {
+  private toHttp(err: unknown, id: string): BadRequestException | NotFoundException | ServiceUnavailableException {
+    const message = err instanceof Error ? err.message : '';
+    if (message === 'content is required' || message === 'content is too large') {
+      return new BadRequestException(message);
+    }
     if (storageFailure(err) === 'missing') {
       return new NotFoundException(`File ${id} not found`);
     }
