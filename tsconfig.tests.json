@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-tests",
+    "rootDir": "apps",
+    "declaration": false,
+    "sourceMap": false,
+    "incremental": false
+  },
+  "include": [
+    "apps/file-storage-service/src/files/**/*.ts",
+    "apps/report-service/src/reports/course-csv.ts",
+    "apps/report-service/src/reports/course-count.dto.ts",
+    "apps/report-service/src/reports/post-course-csv.ts",
+    "apps/report-service/src/reports/reports.service.test.ts"
+  ]
+}

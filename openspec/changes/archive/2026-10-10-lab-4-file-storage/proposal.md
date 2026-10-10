@@ -27,6 +27,12 @@ Methodichka lab-4: save the course enrollment report as CSV into a file-storage 
 - JWT / auth
 - CompletableFuture / parallel fan-out
 
+## Assumptions
+
+- CSV содержит только обучающихся (`ENROLLED`), как и JSON-отчёт.
+- Имя файла не входит в ключ объекта: ключ — `reports/{uuid}.csv`, имя хранится в metadata.
+- Прямой порт file-storage нужен, чтобы скачать CSV без консоли S3. Report с хоста по-прежнему закрыт.
+
 ## Impact
 
 - `apps/file-storage-service/**`, `apps/report-service/**`, `apps/student-service/src/reports/**`

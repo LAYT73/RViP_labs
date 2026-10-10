@@ -4,6 +4,7 @@ node_modules/
 
 # build
 dist/
+dist-tests/
 build/
 *.tsbuildinfo
 
@@ -30,5 +31,6 @@ coverage/
 # OpenSpec local
 openspec/worksets/
 
-# task brief (local)
-task/
+# local notes; the assignment itself is versioned
+task/*
+!task/task.md

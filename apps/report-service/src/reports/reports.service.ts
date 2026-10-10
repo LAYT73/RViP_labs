@@ -1,14 +1,11 @@
-import {
-  BadGatewayException,
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { Student } from '../students/student.entity';
 import { CourseCountDto } from './course-count.dto';
+import { postCourseCsv } from './post-course-csv';
 
 export type StoredFileMeta = {
   id: string;
@@ -57,19 +54,6 @@ export class ReportsService {
 
   async exportByCourse(): Promise<ExportByCourseResult> {
     const rows = await this.byCourse();
-    const csv =
-      ['course,count', ...rows.map((r) => `${r.course},${r.count}`)].join('\n') +
-      '\n';
-    try {
-      const response = await firstValueFrom(
-        this.http.post<StoredFileMeta>(`${this.fileStorageUrl}/api/files`, {
-          filename: 'report-by-course.csv',
-          content: csv,
-        }),
-      );
-      return { ...response.data, rows };
-    } catch {
-      throw new BadGatewayException('File storage service is unavailable');
-    }
+    return postCourseCsv(rows, this.fileStorageUrl, (url, body) => this.http.post(url, body));
   }
 }
