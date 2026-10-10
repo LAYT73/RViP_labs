@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.10-alpine3.22
     container_name: rvip-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-students}
@@ -142,7 +142,7 @@ services:
 
   minio:
     # minio/minio removed from Docker Hub (2026-09); pgsty/silo is S3-compatible drop-in
-    image: pgsty/silo:latest
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     container_name: rvip-minio
     command: server /data --console-address ":9001"
     environment:
@@ -296,6 +296,18 @@ services:
       ELASTIC_APM_ACTIVE: ${ELASTIC_APM_ACTIVE:-true}
     ports:
       - "${GATEWAY_HOST_PORT:-3080}:${GATEWAY_PORT:-3000}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
     networks:
       - rvip-net
 

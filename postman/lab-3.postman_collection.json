@@ -11,7 +11,7 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"fullName\": \"Козлова Анна\",\n  \"course\": 1\n}"
+          "raw": "{\n  \"fullName\": \"Test Student\",\n  \"course\": 1\n}"
         },
         "url": "{{gateway}}/api/students"
       }

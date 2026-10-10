@@ -4,5 +4,6 @@ export class FileMetadataDto {
   bucket!: string;
   size!: number;
   contentType!: string;
+  filename!: string;
   createdAt!: string;
 }
